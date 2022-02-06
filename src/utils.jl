@@ -3,7 +3,7 @@ export generateSwAR, generate_coefficients
 
 using Distributions
 using LinearAlgebra
-# import PolynomialRoots.roots
+import PolynomialRoots.roots
 
 
 infgamma(T, x; ϵ = 1e-3) = GammaShapeRate{T}(x^2 / ϵ, x / ϵ)

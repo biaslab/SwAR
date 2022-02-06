@@ -1,4 +1,4 @@
-export SwARParameters, swar_model, swar_inference
+export SwARParameters, switching_ar, inference_swar
 
 using GraphPPL
 using ReactiveMP
@@ -21,7 +21,7 @@ end
 
 @model [ default_factorisation = MeanField() ] function switching_ar(n_samples, n_buckets, parameters)
     
-    n_mixtures = parameters.n_mixtures
+    n_states   = parameters.n_states
     priors_as  = parameters.priors_as
     priors_bs  = parameters.priors_bs
     priors_ms  = parameters.priors_ms
@@ -29,17 +29,19 @@ end
     prior_s    = parameters.prior_s
     prior_A    = parameters.prior_A
 
+    ARorder    = length(prior_s)
+
     A ~ MatrixDirichlet(prior_A)
     
     z_0 ~ Categorical(prior_s)
 
     # allocate vectors of random variables
-    as = randomvar(n_mixtures, prod_constraint = ProdGeneric(), form_constraint = PointMassFormConstraint(starting_point=(args...)->ones(1)))
-    bs = randomvar(n_mixtures)
-    ms = randomvar(n_mixtures)
-    ws = randomvar(n_mixtures)
+    as = randomvar(n_states, prod_constraint = ProdGeneric(), form_constraint = PointMassFormConstraint(starting_point=(args...)->ones(1)))
+    bs = randomvar(n_states)
+    ms = randomvar(n_states)
+    ws = randomvar(n_states)
 
-    for i in 1:n_mixtures
+    for i in 1:n_states
         as[i] ~ GammaShapeRate(shape(priors_as[i]), rate(priors_as[i]))
         bs[i] ~ GammaShapeRate(shape(priors_bs[i]), rate(priors_bs[i]))
         ms[i] ~ MvNormalMeanCovariance(mean(priors_ms[i]), cov(priors_ms[i]))
@@ -83,7 +85,7 @@ function inference_swar(inputs, outputs, n_buckets, n_its, parameters; with_prog
     
     n_samples = length(outputs)
 
-    @unpack n_mixtures, priors_as, priors_bs, priors_ms, priors_ws, prior_s, prior_A = parameters
+    @unpack n_states, priors_as, priors_bs, priors_ms, priors_ws, prior_s, prior_A = parameters
     
     ARorder = size(priors_ms[1])[1]
 
@@ -110,7 +112,7 @@ function inference_swar(inputs, outputs, n_buckets, n_its, parameters; with_prog
 
     subscribe!(score(Float64, BetheFreeEnergy(), model), fe)
 
-    setmarginal!(A, vague(MatrixDirichlet, (nmixtures, nmixtures)))
+    setmarginal!(A, vague(MatrixDirichlet, (n_states, n_states)))
 
     for (i, (a, b, m, w)) in enumerate(zip(as, bs, ms, ws))
         setmarginal!(a, infgamma(Float64, 1.0, ϵ = 1.0))
@@ -124,7 +126,7 @@ function inference_swar(inputs, outputs, n_buckets, n_its, parameters; with_prog
         setmarginal!(γ, vague(Gamma))
     end
 
-    progress = ProgressMeter.Progress(niterations, 1)
+    progress = ProgressMeter.Progress(n_its, 1)
 
     for _ in 1:n_its
         update!(x, inputs)
