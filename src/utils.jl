@@ -29,7 +29,6 @@ function generateSwAR(n_samples, l_slice, n_states, α, coefs_set, prec_set)
     @assert length(coefs_set) == length(prec_set)
 
     ARorder = length(coefs_set[1])
-    states  = Vector{Vector{Float64}}(undef, n_samples)
 
     dirichlet = Dirichlet(α)
     A_        = [rand(dirichlet) for _ in 1:n_states]
@@ -38,14 +37,14 @@ function generateSwAR(n_samples, l_slice, n_states, α, coefs_set, prec_set)
     x         = 0.1*ones(ARorder)
 
     index = rand(1:n_states)
-    s_prev = s_0
+    states  = [s_0]
+
     for i in 1:n_samples
         if mod(i, l_slice) == 0
-            a = A_matrix*s_prev
+            a = A_matrix*states[end]
             index = rand(Categorical(a/sum(a)))
+            push!(states, zeros(n_states)); states[end][index] = 1.0;
         end
-        states[i] = zeros(n_states); states[i][index] = 1.0;
-        s_prev = states[i]
 
         dist = Normal(dot(coefs_set[index], x[end:-1:end-ARorder+1]), sqrt(1/prec_set[index]))
         push!(x, rand(dist))
