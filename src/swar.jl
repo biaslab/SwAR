@@ -5,6 +5,7 @@ using ReactiveMP
 using Rocket
 using Distributions
 using Parameters
+using Optim
 
 import ProgressMeter
 
@@ -17,6 +18,25 @@ struct SwARParameters
     priors_ws   # tuple of priors for variable W
     prior_s     # prior of variable s
     prior_A     # prior of variable A
+end
+
+function default_point_mass_form_constraint_optimizer_(::Type{ Univariate }, ::Type{ Continuous }, constraint::PointMassFormConstraint, distribution)
+
+    target = let distribution = distribution 
+        (x) -> -logpdf(distribution, x[1])
+    end
+
+    support = Distributions.support(distribution)
+
+    result = if isinf(Distributions.minimum(support)) && isinf(Distributions.maximum(support))
+        optimize(target, call_starting_point(constraint, distribution), LBFGS())
+    else
+        lb = [ Distributions.minimum(support) + 0.001]
+        rb = [ Distributions.maximum(support) ]
+        optimize(target, lb, rb, call_starting_point(constraint, distribution), Fminbox(GradientDescent()))
+    end
+
+    return PointMass(Optim.minimizer(result)[1])
 end
 
 @model [ default_factorisation = MeanField() ] function switching_ar(n_samples, n_buckets, parameters)
@@ -36,7 +56,7 @@ end
     z_0 ~ Categorical(prior_s)
 
     # allocate vectors of random variables
-    as = randomvar(n_states, prod_constraint = ProdGeneric(), form_constraint = PointMassFormConstraint(starting_point=(args...)->ones(1)))
+    as = randomvar(n_states, prod_constraint = ProdGeneric(), form_constraint = PointMassFormConstraint(optimizer=default_point_mass_form_constraint_optimizer_, starting_point=(args...)->ones(1)))
     bs = randomvar(n_states)
     ms = randomvar(n_states)
     ws = randomvar(n_states)
