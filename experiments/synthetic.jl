@@ -34,6 +34,8 @@ function run_experiment(params)
     gen_A, gen_states, observations = generateSwAR(seed, n_samples, l_slice, n_states, ones(n_states), coefs_set, prec_set)
     inputs, outputs = observations[1], observations[2];
     
+    # We use weakly informative priors for AR processes' AR coefficients and precisions.
+    # The rest of the priors are vague
     priors_as, priors_bs, priors_ms, priors_ws, prior_s, prior_A = generate_priors(coefs_set, prec_set)
     
     parameters = SwARParameters(n_states, priors_as, priors_bs, priors_ms, priors_ws, prior_s, prior_A)

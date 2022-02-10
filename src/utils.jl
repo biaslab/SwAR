@@ -88,7 +88,7 @@ function generate_priors(coefs_set, prec_set)
     priors_ws = map(_ -> (dimensionality, diageye(dimensionality)), coefs_set)
     
     prior_s = fill(1.0 / n_states, n_states)
-    prior_A = ones(n_states, n_states)
+    prior_A = 0.1*ones(n_states, n_states)
 
     return priors_as, priors_bs, priors_ms, priors_ws, prior_s, prior_A
 end
