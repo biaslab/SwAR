@@ -17,7 +17,7 @@ experiments = dict_list(Dict(
     "n_samples" => 5000,
     "l_slice"   => 100,
     "n_states"   => collect(2:4),
-    "ar_order"   => collect(2:4),
+    "ar_order"   => 2,
     "iterations" => 20,
     "seed" => collect(1:20)
 ))
@@ -46,24 +46,24 @@ function run_experiment(params)
     return @strdict result parameters gen_A gen_states observations params coefs_set prec_set
 end
 
-function generate_plots(input)
+function generate_plots(input, format="svg")
     try
         @unpack result, parameters, gen_A, gen_states, observations, params, coefs_set, prec_set = input
 
         save_types  = (String, Real)
 
-        fig_path = projectdir("results", "synthetic", savename("generated_swar", params, "svg", allowedtypes = save_types))
+        fig_path = projectdir("results", "synthetic", savename("generated_swar", params, format, allowedtypes = save_types))
         plot_generated(observations[2], fig_path)
 
-        fig_path = projectdir("results", "synthetic", savename("inferred_gamma", params, "svg", allowedtypes = save_types))
+        fig_path = projectdir("results", "synthetic", savename("inferred_gamma", params, format, allowedtypes = save_types))
         plot_gamma(div(params["n_samples"], params["l_slice"]), gen_states, result, prec_set, fig_path)
 
         for index in 1:length(first(coefs_set))
-            fig_path = projectdir("results", "synthetic", savename("inferred_theta_$(index)", params, "svg", allowedtypes = save_types))
+            fig_path = projectdir("results", "synthetic", savename("inferred_theta_$(index)", params, format, allowedtypes = save_types))
             plot_theta(div(params["n_samples"], params["l_slice"]), gen_states, result, coefs_set, fig_path, index)
         end
 
-        fig_path = projectdir("results", "synthetic", savename("inferred_states", params, "svg", allowedtypes = save_types))
+        fig_path = projectdir("results", "synthetic", savename("inferred_states", params, format, allowedtypes = save_types))
         plot_states(gen_states, result, fig_path)
 
     catch error
