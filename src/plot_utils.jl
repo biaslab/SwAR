@@ -5,24 +5,41 @@ using PGFPlotsX
 using Parameters
 using LaTeXStrings
 using ColorSchemes
+using Colors
 # pgfplotsx()
 # push!(PGFPlotsX.CUSTOM_PREAMBLE, raw"\usepgfplotslibrary{fillbetween}");
 
-function plot_generated(outputs, path)
-        plt_swar = @pgf Axis({
+function plot_generated(outputs, l_slice, n_samples, states, path)
+    n_buckets = div(n_samples, l_slice)
+    from, to = 1, n_buckets - 1
+    real_states = last.(findmax.(states))
+    cols = distinguishable_colors(2, [RGB(0,0.0,0), RGB(1.0,1.0,0.9)], dropseed=true)
+    colors = collect(Iterators.flatten(map(e -> Iterators.repeated(e, l_slice), real_states[1:end-1])))
+    real_colors = map(x -> cols[x], colors)
+    plt_swar = @pgf Axis({xlabel=L"t",
         title="Generated SWAR process",
-        yticklabel_style={
-        "/pgf/number format/fixed,
-        /pgf/number format/precision=3"
+            yticklabel_style={
+            "/pgf/number format/fixed,
+            /pgf/number format/precision=3"
+            },
+            ylabel="value", scaled_x_ticks="base 10:0",
+            legend_pos = "outer north east",
+            xmin=0.0, xmax=length(outputs),
+            legend_cell_align="{left}",
+            grid = "major", style={"thin"},
+            width="20cm", height="10cm",
         },
-        grid="major",
-        xmin=0.0, xmax=5000,
-        yminorgrids=true,
-        tick_align="outside",
-        scaled_y_ticks = false,
-        xlabel=L"t", ylabel="value"
-    },
-    Plot({no_marks,color="orange"}, Coordinates(collect(1:length(outputs)), outputs)))
+        Plot({no_marks, style={"ultra thick"}, color=cols[1]}, Coordinates(zeros(1), zeros(1))), LegendEntry("AR-1"),
+        Plot({no_marks, style={"ultra thick"}, color=cols[2]}, Coordinates(zeros(1), zeros(1))), LegendEntry("AR-2"),
+        Iterators.flatten([
+                        [Plot(
+                                {no_marks, color=real_colors[from+i*l_slice-1]},
+                                Coordinates(
+                                    collect(from+(i-1)*l_slice:from+i*l_slice), 
+                                    outputs[from+(i-1)*l_slice:from+i*l_slice]
+                                ),
+                            ) for i in from:to]])...
+    )
 
     pgfsave(path, plt_swar)
 end

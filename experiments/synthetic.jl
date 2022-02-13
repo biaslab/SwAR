@@ -16,10 +16,10 @@ push!(PGFPlotsX.CUSTOM_PREAMBLE, raw"\usepgfplotslibrary{fillbetween}");
 experiments = dict_list(Dict(
     "n_samples" => 5000,
     "l_slice"   => 100,
-    "n_states"   => collect(2:4),
+    "n_states"   => collect(2:2),
     "ar_order"   => 2,
     "iterations" => 20,
-    "seed" => collect(1:20)
+    "seed" => collect(1:1)
 ))
 
 function run_experiment(params)
@@ -53,7 +53,7 @@ function generate_plots(input, format="svg")
         save_types  = (String, Real)
 
         fig_path = projectdir("results", "synthetic", savename("generated_swar", params, format, allowedtypes = save_types))
-        plot_generated(observations[2], fig_path)
+        plot_generated(observations[2], params["l_slice"], params["n_samples"], gen_states, fig_path)
 
         fig_path = projectdir("results", "synthetic", savename("inferred_gamma", params, format, allowedtypes = save_types))
         plot_gamma(div(params["n_samples"], params["l_slice"]), gen_states, result, prec_set, fig_path)
