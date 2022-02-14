@@ -16,10 +16,10 @@ push!(PGFPlotsX.CUSTOM_PREAMBLE, raw"\usepgfplotslibrary{fillbetween}");
 experiments = dict_list(Dict(
     "n_samples" => 5000,
     "l_slice"   => 100,
-    "n_states"   => collect(2:2),
+    "n_states"   => collect(2:4),
     "ar_order"   => 2,
     "iterations" => 20,
-    "seed" => collect(1:1)
+    "seed" => collect(1:42)
 ))
 
 function run_experiment(params)
@@ -80,7 +80,8 @@ results = map(experiments) do experiment
         result, _ = produce_or_load(cache_path, experiment, allowedtypes = save_types) do params
             run_experiment(params)
         end
-        generate_plots(result)
+        generate_plots(result, "tikz")
+        generate_plots(result, "svg")
 
         return result
     catch error
