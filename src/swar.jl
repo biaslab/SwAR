@@ -36,7 +36,11 @@ function default_point_mass_form_constraint_optimizer_(::Type{ Univariate }, ::T
         optimize(target, lb, rb, call_starting_point(constraint, distribution), Fminbox(GradientDescent()))
     end
 
-    return PointMass(Optim.minimizer(result)[1])
+    if Optim.converged(result)
+        return PointMass(Optim.minimizer(result)[1])
+    else
+        error("Optimisation procedure for point mass estimation did not converge", result)
+    end
 end
 
 @model [ default_factorisation = MeanField() ] function switching_ar(n_samples, n_buckets, parameters)
@@ -96,6 +100,8 @@ end
         dp[i] ~ dot(x[i], θ[r])
         y[i]  ~ NormalMeanPrecision(dp[i], γ[r]) 
     end
+    
+#     scheduler = schedule_updates(z, A, ms, ws, bs, as, θ, γ)
 
     return z, A, as, bs, ms, ws, θ, γ, y, x
 end
@@ -133,6 +139,7 @@ function inference_swar(inputs, outputs, n_buckets, n_its, parameters; with_prog
     subscribe!(score(Float64, BetheFreeEnergy(), model), fe)
 
     setmarginal!(A, vague(MatrixDirichlet, (n_states, n_states)))
+    setmarginals!(z, Categorical(prior_s))
 
     for (i, (a, b, m, w)) in enumerate(zip(as, bs, ms, ws))
         setmarginal!(a, infgamma(Float64, 1.0, ϵ = 1.0))
@@ -151,6 +158,7 @@ function inference_swar(inputs, outputs, n_buckets, n_its, parameters; with_prog
     for _ in 1:n_its
         update!(x, inputs)
         update!(y, outputs)
+#         release!(scheduler)
         if with_progress
             ProgressMeter.next!(progress)
         end

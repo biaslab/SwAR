@@ -83,12 +83,13 @@ function generate_priors(coefs_set, prec_set)
     priors_as = map(γ -> infgamma(Float64, γ), prec_set)
     priors_bs = map(_ -> infgamma(Float64, 1.0), prec_set)
 
-    priors_ms = map(θ -> MvGaussianMeanPrecision(coefs_set[1], coefs_set[2]), 
-                    zip(coefs_set, [diageye(dimensionality) for _ in 1:length(coefs_set)]))
+    priors_ms = map(θ -> MvGaussianMeanPrecision(θ[1], θ[2]), 
+                    zip(coefs_set, [1e4*diageye(dimensionality) for _ in 1:length(coefs_set)]))
     priors_ws = map(_ -> (dimensionality, diageye(dimensionality)), coefs_set)
     
     prior_s = fill(1.0 / n_states, n_states)
-    prior_A = 0.1*ones(n_states, n_states)
+    prior_A = ones(n_states, n_states)
+    
 
     return priors_as, priors_bs, priors_ms, priors_ws, prior_s, prior_A
 end
