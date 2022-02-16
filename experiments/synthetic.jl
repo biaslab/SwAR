@@ -16,10 +16,10 @@ push!(PGFPlotsX.CUSTOM_PREAMBLE, raw"\usepgfplotslibrary{fillbetween}");
 experiments = dict_list(Dict(
     "n_samples" => 5000,
     "l_slice"   => 100,
-    "n_states"   => collect(2:4),
+    "n_states"   => 2,
     "ar_order"   => 2,
     "iterations" => 20,
-    "seed" => collect(1:42)
+    "seed" => collect(1:100)
 ))
 
 function run_experiment(params)
@@ -72,6 +72,7 @@ function generate_plots(input, format="svg")
 end
 
 results = map(experiments) do experiment
+    FE = []
     # Path for the saving cache file for later use
     cache_path  = projectdir("dump", "synthetic")
     # Types which should be used for cache file name
@@ -85,6 +86,21 @@ results = map(experiments) do experiment
 
         return result
     catch error
-        return error
+        @warn error
     end
 end;
+
+begin
+    FE = []
+    for res in results
+        try
+            push!(FE, res["result"].mfe)
+        catch error
+            @warn error
+        end
+    end
+    FE = sum(FE)/length(FE)
+    fig_path = "results/synthetic/FE.tikz"
+    vmp_its = 20
+    plot_fe(fig_path, FE, vmp_its)
+end

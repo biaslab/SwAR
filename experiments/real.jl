@@ -29,13 +29,13 @@ function ar_ssm(series, order)
 end
 
 signal, fs = WAV.wavread("data/btb.wav")
-signal, fs = signal[1:2:end], fs/2 # downsample signal for faster processing
+# signal, fs = signal[1:2:end], fs/2 # downsample signal for faster processing
 
 # priors for train and bar sounds were extracted by means of bayesian AR
 # see https://github.com/biaslab/AIDA/blob/master/src/environment/ar.jl
-coefs_set = [[0.813870337218894, -0.1462282474234252], [1.0215122761169466, -0.29159434505180454]]
-prec_set  = [2344.109805572215, 3827.9836114819877]
-l_slice   = 5000
+coefs_set = [[1.2963022142609468, -0.4492847417092366], [1.2177989080828675, -0.3255546763338871]]
+prec_set  = [8323.087940830268, 5524.193364033609]
+l_slice   = 15000
 n_buckets = div(length(signal), l_slice)
 n_states  = 2
 
@@ -68,7 +68,7 @@ plt_acoustic = @pgf Axis({
 },
 Plot(
     {no_marks,color="cyan",fill_opacity=0.0, mark_size=4.0, mark="*"},
-    Coordinates(collect(0:1/fs:length(signal)/fs)[1:end-1], signal)
+    Coordinates(collect(0:1/fs:length(signal)/fs)[1:end], vec(signal))
     ), LegendEntry("signal"),
 Plot({only_marks, scatter, scatter_src = "explicit"},
     Table(
@@ -79,3 +79,4 @@ Plot({only_marks, scatter, scatter_src = "explicit"},
 )
 
 pgfsave("results/real/inferred_acoustics.svg", plt_acoustic)
+pgfsave("results/real/inferred_acoustics.tikz", plt_acoustic)

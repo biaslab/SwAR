@@ -1,4 +1,4 @@
-export plot_generated, plot_gamma, plot_theta, plot_states
+export plot_generated, plot_gamma, plot_theta, plot_states, plot_fe
 
 using Plots
 using PGFPlotsX
@@ -50,12 +50,17 @@ function plot_gamma(n_buckets, gen_states, result, prec_set, path)
 
     plt_gamma = @pgf Axis(
     {   xlabel="frame "*L" \sharp",
+        yticklabel_style={
+        "/pgf/number format/fixed,
+        /pgf/number format/precision=3"
+        },
         xmin=0.0,
         legend_pos = "north east",
         legend_cell_align="{left}",
         grid = "major",
         ylabel=L"\gamma",
         legend_style = "{nodes={scale=0.5, transform shape}}",
+        
     },
     Plot({no_marks,color="blue!70"}, Coordinates(collect(1:n_buckets), [prec_set[state] for state in real_states[1:end-1]])), LegendEntry("generated"),
     Plot({no_marks,color="black", style ="{dashed}"}, Coordinates(collect(1:n_buckets), mean.(mγs[end]))),
@@ -127,4 +132,19 @@ function plot_states(gen_states, result, path)
     )
     pgfsave(path, plt_states)
 
+end
+
+
+function plot_fe(path, FE, vmp_its, start=3, )
+    axis4 = @pgf Axis({xlabel="iteration",
+                    ylabel="Bethe free energy [nats]",
+                    legend_pos = "north east",
+                    legend_cell_align="{left}",
+                    scale = 1.0,
+                    grid = "major",
+                    width="20cm", height="12cm"
+        },
+        Plot({mark = "o", "red", mark_size=1}, Coordinates(collect(start:vmp_its), FE[start:end])), LegendEntry("BFE"))
+    pgfsave(path, axis4)
+    
 end
