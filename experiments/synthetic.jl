@@ -104,3 +104,18 @@ begin
     vmp_its = 20
     plot_fe(fig_path, FE, vmp_its)
 end
+
+begin
+    cat_accs = []
+    for res in results
+        try
+            estimated = round.(mean.(res["result"].mzs[end][1:end]))
+            real = last.(findmax.(res["gen_states"]))[1:end-1]
+            push!(cat_accs, cat_accuracy(estimated, real))
+        catch error
+            @warn error
+        end
+    end
+    cat_acc_score = mean(cat_accs)
+    println(cat_acc_score)
+end

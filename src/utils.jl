@@ -1,5 +1,6 @@
 export infgamma, InferenceResults
 export generateSwAR, generate_coefficients, generate_priors
+export cat_accuracy
 
 using Distributions
 using LinearAlgebra
@@ -92,4 +93,8 @@ function generate_priors(coefs_set, prec_set)
     
 
     return priors_as, priors_bs, priors_ms, priors_ws, prior_s, prior_A
+end
+
+function cat_accuracy(y_pred, y_true)
+    return sum(y_pred .== y_true) / length(y_true)
 end
