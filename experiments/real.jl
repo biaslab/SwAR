@@ -48,35 +48,46 @@ result = InferenceResults(inference_swar(inputs, outputs, n_buckets, 20, paramet
 
 states = collect(flatten(map(e -> repeated(e, l_slice), round.(mean.(result.mzs[end][1:end])))))
 
+segment_sec = l_slice/fs
 
 plt_acoustic = @pgf Axis({
     yticklabel_style={
     "/pgf/number format/fixed,
     /pgf/number format/precision=3"
     },
-    legend_pos="north west",
+    legend_pos="north east",
     grid="major",
     yminorgrids=true,
     xmin=0.0,
     xtick_distance=1.0,
     xmax=7.6,
     tick_align="outside",
-    each_nth_point=10,
+    each_nth_point=100,
     scaled_y_ticks = false,
     ytick_distance=0.1, grid = "major", style={"ultra thin"},
     width="8cm", height="5cm",
     xlabel="sec", ylabel="amplitude",
 },
 Plot(
-    {no_marks,color="cyan",fill_opacity=0.0, mark_size=4.0, mark="*"},
+    {no_marks,color="black",fill_opacity=0.0, mark_size=4.0, mark="*"},
     Coordinates(collect(0:1/fs:length(signal)/fs)[1:end], vec(signal))
-    ), LegendEntry("signal"),
-Plot({only_marks, scatter, scatter_src = "explicit"},
-    Table(
-        {x = "x", y = "y", meta = "col"},
-        x = collect(0:1/fs:length(signal)/fs)[1:length(states)], y = -0.15*ones(length(states)), col = states
-        ),
-     ),
+    ),
+    VLine({"name path=a", color="red", "thin"}, 0*segment_sec),
+    VLine({"name path=b", color="red", "thin"}, 1*segment_sec),
+    VLine({"name path=c", color="red", "thin"}, 2*segment_sec),
+    VLine({"name path=d", color="red", "thin"}, 3*segment_sec),
+    VLine({"name path=e", color="red", "thin"}, 4*segment_sec),
+    VLine({"name path=f", color="red", "thin"}, 5*segment_sec),
+    Plot({ thick, color = "blue", fill = "blue", opacity = 0.2 },
+            raw"fill between [of=a and b]"),
+    Plot({ thick, color = "red", fill = "red", opacity = 0.2 },
+            raw"fill between [of=b and c]"),
+    Plot({ thick, color = "red", fill = "red", opacity = 0.2 },
+            raw"fill between [of=c and d]"),
+    Plot({ thick, color = "blue", fill = "blue", opacity = 0.2 },
+            raw"fill between [of=d and e]"),
+    Plot({ thick, color = "blue", fill = "blue", opacity = 0.2 },
+            raw"fill between [of=e and f]")
 )
 
 pgfsave("results/real/inferred_acoustics.svg", plt_acoustic)
