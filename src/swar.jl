@@ -64,9 +64,9 @@ end
 
     z_prev = z_0
     for i in 1:n_buckets
-        z[i] ~ Transition(z_prev, A) where { q = q(out, in)q(a) }
+        z[i] ~ Transition(z_prev, A) # where { q = q(out, in)q(a) }
         γ[i] ~ GammaMixture(z[i], tas, tbs)
-        θ[i] ~ GaussianMixture(z[i], tms, tws) where { q = MeanField() }
+        θ[i] ~ GaussianMixture(z[i], tms, tws) # where { q = MeanField() }
         z_prev = z[i]
     end
     
