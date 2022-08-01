@@ -60,7 +60,9 @@ plt_acoustic = @pgf Axis({
     yminorgrids=true,
     xmin=0.0,
     xtick_distance=1.0,
-    xmax=7.6,
+    xmax=length(signal)/fs,
+    ymax=0.1,
+    ymin=-0.1,
     tick_align="outside",
     each_nth_point=100,
     scaled_y_ticks = false,
@@ -69,7 +71,7 @@ plt_acoustic = @pgf Axis({
     xlabel="sec", ylabel="amplitude",
 },
 Plot(
-    {no_marks,color="black",fill_opacity=0.0, mark_size=4.0, mark="*"},
+    {no_marks,color="black", "thin",fill_opacity=0.0, mark_size=4.0, mark="*"},
     Coordinates(collect(0:1/fs:length(signal)/fs)[1:end], vec(signal))
     ),
     VLine({"name path=a", color="red", "thin"}, 0*segment_sec),
