@@ -20,7 +20,30 @@ struct SwARParameters
     prior_A     # prior of variable A
 end
 
-@model function switching_ar(n_samples, n_buckets, parameters)
+function default_point_mass_form_constraint_optimizer_(::Type{ Univariate }, ::Type{ Continuous }, constraint::PointMassFormConstraint, distribution)
+
+    target = let distribution = distribution 
+        (x) -> -logpdf(distribution, x[1])
+    end
+
+    support = Distributions.support(distribution)
+
+    result = if isinf(Distributions.minimum(support)) && isinf(Distributions.maximum(support))
+        optimize(target, call_starting_point(constraint, distribution), LBFGS())
+    else
+        lb = [ Distributions.minimum(support) + 0.001]
+        rb = [ Distributions.maximum(support) ]
+        optimize(target, lb, rb, call_starting_point(constraint, distribution), Fminbox(GradientDescent()))
+    end
+
+    if Optim.converged(result)
+        return PointMass(Optim.minimizer(result)[1])
+    else
+        error("Optimisation procedure for point mass estimation did not converge", result)
+    end
+end
+
+@model [default_factorisation=MeanField()] function switching_ar(n_samples, n_buckets, parameters)
     
     n_states   = parameters.n_states
     priors_as  = parameters.priors_as
@@ -37,7 +60,7 @@ end
     z_0 ~ Categorical(prior_s)
 
     # allocate vectors of random variables
-    as = randomvar(n_states)
+    as = randomvar(n_states) where {marginal_form_constraint = PointMassFormConstraint(optimizer=default_point_mass_form_constraint_optimizer_, starting_point=(args...)->ones(1)), prod_constraint=ProdGeneric()}
     bs = randomvar(n_states)
     ms = randomvar(n_states)
     ws = randomvar(n_states)
@@ -64,9 +87,9 @@ end
 
     z_prev = z_0
     for i in 1:n_buckets
-        z[i] ~ Transition(z_prev, A) # where { q = q(out, in)q(a) }
-        γ[i] ~ GammaMixture(z[i], tas, tbs)
-        θ[i] ~ GaussianMixture(z[i], tms, tws) # where { q = MeanField() }
+        z[i] ~ Transition(z_prev, A) where { q = q(out, in)q(a) }
+        γ[i] ~ GammaMixture(z[i], tas, tbs) where { q = MeanField() }
+        θ[i] ~ GaussianMixture(z[i], tms, tws) where { q = MeanField() }
         z_prev = z[i]
     end
     
@@ -82,62 +105,62 @@ end
 end
 
 
-# function inference_swar(inputs, outputs, n_buckets, n_its, parameters; with_progress = true)
+function inference_swar(inputs, outputs, n_buckets, n_its, parameters; with_progress = true)
     
-#     n_samples = length(outputs)
+    n_samples = length(outputs)
 
-#     @unpack n_states, priors_as, priors_bs, priors_ms, priors_ws, prior_s, prior_A = parameters
+    @unpack n_states, priors_as, priors_bs, priors_ms, priors_ws, prior_s, prior_A = parameters
     
-#     ARorder = size(priors_ms[1])[1]
+    ARorder = size(priors_ms[1])[1]
 
-#     model, (z, A, as, bs, ms, ws, θs, γs, y, x) = switching_ar(n_samples, n_buckets, parameters, options=(limit_stack_depth=100,));
+    model, (z, A, as, bs, ms, ws, θs, γs, y, x) = switching_ar(model_options(limit_stack_depth=100,), n_samples, n_buckets, parameters);
     
-#     mzs     = keep(Vector{Marginal})
-#     mA      = keep(Marginal)
-#     mas     = keep(Vector{Marginal})
-#     mbs     = keep(Vector{Marginal})
-#     mms     = keep(Vector{Marginal})
-#     mws     = keep(Vector{Marginal})
-#     mθs     = keep(Vector{Marginal})
-#     mγs     = keep(Vector{Marginal})
-#     fe      = ScoreActor(Float64)
+    mzs     = keep(Vector{Marginal})
+    mA      = keep(Marginal)
+    mas     = keep(Vector{Marginal})
+    mbs     = keep(Vector{Marginal})
+    mms     = keep(Vector{Marginal})
+    mws     = keep(Vector{Marginal})
+    mθs     = keep(Vector{Marginal})
+    mγs     = keep(Vector{Marginal})
+    fe      = ScoreActor(Float64)
 
-#     subscribe!(getmarginal(A), mA)
-#     subscribe!(getmarginals(z), mzs)
-#     subscribe!(getmarginals(as), mas)
-#     subscribe!(getmarginals(bs), mbs)
-#     subscribe!(getmarginals(ms), mms)
-#     subscribe!(getmarginals(ws), mws)
-#     subscribe!(getmarginals(θs), mθs)
-#     subscribe!(getmarginals(γs), mγs)
+    subscribe!(getmarginal(A), mA)
+    subscribe!(getmarginals(z), mzs)
+    subscribe!(getmarginals(as), mas)
+    subscribe!(getmarginals(bs), mbs)
+    subscribe!(getmarginals(ms), mms)
+    subscribe!(getmarginals(ws), mws)
+    subscribe!(getmarginals(θs), mθs)
+    subscribe!(getmarginals(γs), mγs)
 
-#     subscribe!(score(Float64, BetheFreeEnergy(), model), fe)
+    subscribe!(score(Float64, BetheFreeEnergy(), model), fe)
 
-#     setmarginal!(A, vague(MatrixDirichlet, (n_states, n_states)))
-#     setmarginals!(z, Categorical(prior_s))
+    setmarginal!(A, vague(MatrixDirichlet, (n_states, n_states)))
+    setmarginals!(z, Categorical(prior_s))
 
-#     for (i, (a, b, m, w)) in enumerate(zip(as, bs, ms, ws))
-#         setmarginal!(a, infgamma(Float64, 1.0, ϵ = 1.0))
-#         setmarginal!(b, infgamma(Float64, 1.0, ϵ = 1.0))
-#         setmarginal!(m, vague(MvNormalMeanCovariance, ARorder))
-#         setmarginal!(w, vague(Wishart, ARorder))
-#     end
+    for (i, (a, b, m, w)) in enumerate(zip(as, bs, ms, ws))
+        setmarginal!(a, infgamma(Float64, 1.0, ϵ = 1.0))
+        setmarginal!(b, infgamma(Float64, 1.0, ϵ = 1.0))
+        setmarginal!(m, vague(MvNormalMeanCovariance, ARorder))
+        setmarginal!(w, vague(Wishart, ARorder))
+    end
 
-#     for (θ, γ) in zip(θs, γs)
-#         setmarginal!(θ, vague(MvNormalMeanCovariance, ARorder))
-#         setmarginal!(γ, vague(Gamma))
-#     end
+    for (θ, γ) in zip(θs, γs)
+        setmarginal!(θ, vague(MvNormalMeanCovariance, ARorder))
+        setmarginal!(γ, vague(Gamma))
+    end
 
-#     progress = ProgressMeter.Progress(n_its, 1)
+    progress = ProgressMeter.Progress(n_its, 1)
 
-#     for _ in 1:n_its
-#         update!(x, inputs)
-#         update!(y, outputs)
-# #         release!(scheduler)
-#         if with_progress
-#             ProgressMeter.next!(progress)
-#         end
-#     end
+    for _ in 1:n_its
+        update!(x, inputs)
+        update!(y, outputs)
+#         release!(scheduler)
+        if with_progress
+            ProgressMeter.next!(progress)
+        end
+    end
 
-#     return map(getvalues, (mzs, mγs, mθs, mA, mas, mbs, mms, mws, fe))
-# end
+    return map(getvalues, (mzs, mγs, mθs, mA, mas, mbs, mms, mws, fe))
+end
