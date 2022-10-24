@@ -1,0 +1,39 @@
+cff-version: 1.2.0
+message: "Please cite this research as below."
+authors:
+- family-names: "Podusenko"
+  given-names: "Albert"
+- family-names: "van Erp"
+  given-names: "Bart"
+  orcid: "https://orcid.org/0000-0002-5619-7071"
+- family-names: "Bagaev"
+  given-names: "Dmitry"
+- family-names: "Ïsmail"
+  given-names: "Şenöz"
+- family-names: "de Vries"
+  given-names: "Bert"
+title: "Message Passing-Based Inference in Switching Autoregressive Models"
+version: 1.0.0
+date-released: 2022-08
+url: "https://github.com/biaslab/SwAR"
+preferred-citation:
+  type: conference-paper
+  authors:
+  - family-names: "Podusenko"
+    given-names: "Albert"
+  - family-names: "van Erp"
+    given-names: "Bart"
+    orcid: "https://orcid.org/0000-0002-5619-7071"
+  - family-names: "Bagaev"
+    given-names: "Dmitry"
+  - family-names: "Ïsmail"
+    given-names: "Şenöz"
+  - family-names: "de Vries"
+    given-names: "Bert"
+  title: "Message Passing-Based Inference in Switching Autoregressive Models"
+  year: 2022
+  month: 08
+  conference:
+    - name: 2022 30th European Signal Processing Conference (EUSIPCO)
+  start: 1497
+  end: 1501
